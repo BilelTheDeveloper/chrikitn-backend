@@ -1,25 +1,27 @@
 const nodemailer = require('nodemailer');
 
 const emailTransporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465, // Direct SSL
-  secure: true, 
+  service: 'gmail', // ✅ This tells Nodemailer to handle the host/port/SSL automatically
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  // 🛠️ NETWORK STABILIZERS
+  // 🚀 Explicitly force IPv4 to avoid the Frankfurt IPv6 routing bug
   family: 4, 
-  connectionTimeout: 60000000, // 1 minute
-  greetingTimeout: 60000000,
-  socketTimeout: 60000000,
-  dnsTimeout: 10000000,
-  tls: {
-    // This is critical for Frankfurt/Cloudflare/Render routing
-    rejectUnauthorized: false,
-    servername: 'smtp.gmail.com'
+  connectionTimeout: 60000, 
+  greetingTimeout: 60000,
+  socketTimeout: 60000
+});
+
+emailTransporter.verify((error) => {
+  if (error) {
+    console.error('❌ SMTP Error:', error.message);
+  } else {
+    console.log('🚀 SMTP Server Ready - Connection established via Service Shortcut');
   }
 });
+
+// ... keep your exports.generateOTP and exports.sendEmailOTP as they were
 
 // Adding a quick check so we can see success in Render logs
 emailTransporter.verify((error) => {
