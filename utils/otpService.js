@@ -1,16 +1,24 @@
 const nodemailer = require('nodemailer');
 
 const emailTransporter = nodemailer.createTransport({
-  service: 'gmail', // ✅ This is more stable on Render than host/port
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // Must be false for port 587
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
   },
-  // ✅ Explicitly force IPv4 at the socket level
-  family: 4 
+  // Force IPv4 and increase timeouts to fight the Gateway Timeout
+  family: 4,
+  connectionTimeout: 30000, // Give it 30 seconds
+  greetingTimeout: 30000,
+  socketTimeout: 30000,
+  tls: {
+    rejectUnauthorized: false,
+    minVersion: 'TLSv1.2'
+  }
 });
 
-// Verification check to see if it works on startup
 emailTransporter.verify((error, success) => {
   if (error) {
     console.error('❌ SMTP Connection Error:', error.message);
@@ -29,16 +37,8 @@ const sendEmailOTP = async (email, otp) => {
     to: email,
     subject: 'ACCESS PROTOCOL: Your 6-Digit Code',
     text: `Your security code is: ${otp}`,
-    html: `
-      <div style="font-family: sans-serif; background: #0f172a; color: white; padding: 40px; border-radius: 20px;">
-        <h2 style="color: #3b82f6; text-transform: uppercase;">Security Protocol</h2>
-        <p>Your 6-digit access code is:</p>
-        <h1 style="letter-spacing: 10px; font-size: 40px; color: white;">${otp}</h1>
-        <p style="color: #64748b; font-size: 12px;">This code expires in 5 minutes.</p>
-      </div>
-    `
+    html: `<h1>Code: ${otp}</h1>`
   };
-
   return emailTransporter.sendMail(mailOptions);
 };
 
