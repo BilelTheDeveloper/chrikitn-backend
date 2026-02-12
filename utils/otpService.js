@@ -2,17 +2,22 @@ const nodemailer = require('nodemailer');
 
 const emailTransporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465, // Door #2
-  secure: true, // Lock the door immediately
+  port: 465, // Direct SSL
+  secure: true, 
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  // 🛠️ NETWORK STABILIZERS
   family: 4, 
-  connectionTimeout: 990000, // Give it a full minute
-  greetingTimeout: 990000,
+  connectionTimeout: 60000000, // 1 minute
+  greetingTimeout: 60000000,
+  socketTimeout: 60000000,
+  dnsTimeout: 10000000,
   tls: {
-    rejectUnauthorized: false 
+    // This is critical for Frankfurt/Cloudflare/Render routing
+    rejectUnauthorized: false,
+    servername: 'smtp.gmail.com'
   }
 });
 
