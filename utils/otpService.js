@@ -1,27 +1,16 @@
 const nodemailer = require('nodemailer');
 
-// ✅ Hardened Transporter for Cloud Deployment
 const emailTransporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465, 
-  secure: true, 
+  service: 'gmail', // ✅ This is more stable on Render than host/port
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS.replace(/\s/g, ''), 
+    pass: process.env.EMAIL_PASS
   },
-  family: 4, 
-  connectionTimeout: 20000, 
-  greetingTimeout: 20000,
-  socketTimeout: 25000,
-  dnsTimeout: 10000,
-  debug: true, 
-  logger: true,
-  tls: {
-    rejectUnauthorized: false, 
-    servername: 'smtp.gmail.com'
-  }
+  // ✅ Explicitly force IPv4 at the socket level
+  family: 4 
 });
 
+// Verification check to see if it works on startup
 emailTransporter.verify((error, success) => {
   if (error) {
     console.error('❌ SMTP Connection Error:', error.message);
