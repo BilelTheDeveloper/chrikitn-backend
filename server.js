@@ -49,6 +49,9 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/posts', require('./routes/postRoutes')); 
 app.use('/api/vip', require('./routes/vipRoutes')); 
 
+// ✅ ACCESS CONTROL PROTOCOL (NEW: Whitelist Management)
+app.use('/api/access', require('./routes/accessRoutes'));
+
 // ✅ Role Upgrade Protocol
 app.use('/api/role-request', require('./routes/roleRequestRoutes'));
 
@@ -97,5 +100,6 @@ server.listen(PORT, () => {
     console.log(`🛰️  HANDSHAKE PROTOCOL LIVE AT /api/requests`);
     console.log(`💬 SECURE CHAT PROTOCOL LIVE AT /api/chat`);
     console.log(`🤝 CONNECTION PROTOCOL LIVE AT /api/connections`);
+    console.log(`🔑 ACCESS CONTROL PROTOCOL LIVE AT /api/access`);
     console.log(`⚡ SOCKET.IO ENGINE ONLINE`);
 });
