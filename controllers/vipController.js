@@ -8,24 +8,31 @@ exports.createVipPost = async (req, res) => {
   try {
     // 🔍 Terminal logging for debugging
     console.log("--- New VIP Post Attempt ---");
-    console.log("Authenticated User ID:", req.user ? req.user.id : "NO USER FOUND");
+    
+    // Safety check: If protect middleware fails to provide req.user, stop here gracefully
+    if (!req.user) {
+      console.log("❌ AUTH ERROR: No user attached to request.");
+      return res.status(401).json({ success: false, msg: "User identity not verified." });
+    }
+
+    console.log("Authenticated User ID:", req.user.id || req.user._id);
     console.log("Body:", req.body);
     console.log("File:", req.file ? req.file.path : "No Image");
 
-    // Capture User ID from Protect Middleware
+    // Capture User ID
     const userId = req.user.id || req.user._id;
     
-    // 1. Fetch user for role mapping to ensure we match the User model
+    // 1. Fetch user for role mapping
     const userDoc = await User.findById(userId);
     if (!userDoc) {
       return res.status(404).json({ success: false, msg: "User profile not found." });
     }
 
-    // 2. Sync with your NEW Model Enum: ['Freelancer', 'Brand', 'Simple']
+    // 2. Sync with Role Enum: ['Freelancer', 'Brand', 'Simple']
     const userRole = userDoc.role; 
     let assignedIntelType;
     
-    // Exact mapping logic to prevent Mongoose Validation Errors
+    // Clean mapping logic
     if (userRole === 'Simple' || userRole === 'simple') {
       assignedIntelType = 'Simple';
     } else if (userRole === 'Brand') {
@@ -38,7 +45,7 @@ exports.createVipPost = async (req, res) => {
 
     // 3. Prepare Base Data
     const intelData = {
-      user: userId, // Linked to the authenticated user
+      user: userId, 
       intelType: assignedIntelType, 
       intelImage: req.file ? req.file.path : false, 
       ratingSnapshot: averageRating,
@@ -52,17 +59,22 @@ exports.createVipPost = async (req, res) => {
       let parsedLinks = [];
       try {
         if (portfolioLinks) {
+          // Check if it's already an array (some versions of multer-storage-cloudinary do this)
+          // or a string that needs parsing
           parsedLinks = typeof portfolioLinks === 'string' 
             ? JSON.parse(portfolioLinks) 
             : portfolioLinks;
         }
       } catch (e) {
+        // Fallback for single links or malformed JSON
         parsedLinks = portfolioLinks ? [portfolioLinks] : [];
       }
 
       intelData.globalService = globalService || "Service Provided";
       intelData.serviceDescription = serviceDescription || "No description provided";
-      intelData.portfolioLinks = Array.isArray(parsedLinks) ? parsedLinks.filter(l => l) : [];
+      intelData.portfolioLinks = Array.isArray(parsedLinks) 
+        ? parsedLinks.filter(l => l && l.trim() !== "") 
+        : [];
     } 
     else {
       // Logic for Brand AND Simple
