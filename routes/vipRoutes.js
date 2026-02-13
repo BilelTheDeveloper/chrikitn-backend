@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 
-// ✅ CLOUDINARY UPDATE: Swap Sharp for Cloudinary service
+// ✅ CLOUDINARY UPDATE: Handles the image upload to the cloud
 const { upload } = require('../config/cloudinary'); 
 
 const { 
@@ -17,8 +17,7 @@ const {
 router.get('/feed', protect, getVipFeed);
 
 // --- USER ACTIONS ---
-// POST: Create Intel (Auth -> Cloudinary Upload -> Controller)
-// ✅ UPDATE: Replaced uploadVip/optimizeVipImage with cloud upload middleware
+// ✅ FIX: Added 'protect' here so the controller knows WHO is posting
 router.post(
     '/create', 
     protect, 
@@ -27,10 +26,7 @@ router.post(
 );
 
 // --- ADMIN ACTIONS (Headquarters) ---
-// GET: Fetch all posts where verified: false
 router.get('/admin/pending', protect, getPendingVipPosts);
-
-// PATCH: Approve (verify: true) or Delete (Reject) a post
 router.patch('/admin/verify/:id', protect, verifyVipPost);
 
 module.exports = router;

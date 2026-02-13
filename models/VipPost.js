@@ -12,7 +12,7 @@ const VipPostSchema = new mongoose.Schema({
   intelType: {
     type: String,
     // Added 'Founder' to the allowed list
-    enum: ['Freelancer', 'Brand', 'Founder'], 
+    enum: ['Freelancer', 'Brand', 'Simple'], 
     required: true
   },
 
