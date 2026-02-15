@@ -45,7 +45,10 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // 4. ROUTES
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes')); 
-app.use('/api/admin', require('./routes/admin')); 
+
+// ✅ MAIN DASHBOARD PROTOCOL (Updated to handle stats and metrics)
+app.use('/api/admin', require('./routes/adminRoutes')); 
+
 app.use('/api/posts', require('./routes/postRoutes')); 
 app.use('/api/vip', require('./routes/vipRoutes')); 
 
@@ -95,6 +98,7 @@ const PORT = process.env.PORT || 5000;
 // Note: We use server.listen instead of app.listen to support Sockets
 server.listen(PORT, () => {
     console.log(`🚀 TERMINAL ACTIVE ON PORT ${PORT}`);
+    console.log(`📊 MAIN DASHBOARD PROTOCOL LIVE AT /api/admin`);
     console.log(`📡 VIP INTEL PROTOCOL LIVE AT /api/vip`);
     console.log(`📂 ROLE UPGRADE SYSTEM LIVE AT /api/role-request`);
     console.log(`🛰️  HANDSHAKE PROTOCOL LIVE AT /api/requests`);
