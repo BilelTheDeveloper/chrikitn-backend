@@ -46,7 +46,10 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes')); 
 
-// ✅ MAIN DASHBOARD PROTOCOL (Updated to handle stats and metrics)
+// ✅ FIX: LOAD BOTH ADMIN FILES
+// Original admin logic (User Verification, etc.)
+app.use('/api/admin-core', require('./routes/admin')); 
+// New Dashboard logic (Stats)
 app.use('/api/admin', require('./routes/adminRoutes')); 
 
 app.use('/api/posts', require('./routes/postRoutes')); 
@@ -99,6 +102,7 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`🚀 TERMINAL ACTIVE ON PORT ${PORT}`);
     console.log(`📊 MAIN DASHBOARD PROTOCOL LIVE AT /api/admin`);
+    console.log(`🛡️  ADMIN CORE PROTOCOL LIVE AT /api/admin-core`);
     console.log(`📡 VIP INTEL PROTOCOL LIVE AT /api/vip`);
     console.log(`📂 ROLE UPGRADE SYSTEM LIVE AT /api/role-request`);
     console.log(`🛰️  HANDSHAKE PROTOCOL LIVE AT /api/requests`);
