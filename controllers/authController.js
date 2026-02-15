@@ -1,10 +1,9 @@
 const User = require('../models/User');
+const Access = require('../models/Access'); // ✅ IMPORTED: The Access model
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-// ✅ Use the service you created to keep this file clean
 const { generateOTP, sendEmailOTP } = require('../utils/otpService');
 
-// Temporary storage for OTPs (Email -> {code, expires})
 let tempOTPStore = {};
 
 /**
@@ -16,10 +15,8 @@ exports.sendOTP = async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ success: false, msg: "Email required." });
 
-    // ✅ Use your service logic
     const otp = generateOTP();
     
-    // Store in memory for 5 minutes
     tempOTPStore[email] = {
       code: otp,
       expires: Date.now() + 5 * 60 * 1000 
@@ -27,7 +24,6 @@ exports.sendOTP = async (req, res) => {
 
     console.log(`[OTP] Attempting to send code to: ${email}`);
 
-    // 🛡️ ENHANCEMENT: Race the email send against a 15s timeout
     await Promise.race([
         sendEmailOTP(email, otp),
         new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP_GATEWAY_TIMEOUT')), 15000))
@@ -122,9 +118,11 @@ exports.registerUser = async (req, res) => {
     await user.save();
     delete tempOTPStore[email];
 
-    // ✅ UPDATED: Added email to token payload
+    // Check whitelist during registration just in case
+    const adminAccess = await Access.findOne({ email: user.email.toLowerCase() });
+
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role }, 
+      { id: user._id, email: user.email, role: user.role, isAdmin: !!adminAccess }, 
       process.env.JWT_SECRET || 'fallback_secret', 
       { expiresIn: '24h' }
     );
@@ -137,7 +135,8 @@ exports.registerUser = async (req, res) => {
         name: user.name,
         role: user.role,
         isVerified: user.isVerified,
-        status: user.status
+        status: user.status,
+        isAdmin: !!adminAccess // ✅ Tells Frontend if they are in the Access table
       }
     });
 
@@ -171,9 +170,16 @@ exports.loginUser = async (req, res) => {
       });
     }
 
-    // ✅ UPDATED: Added email to token payload
+    // ✅ WHITELIST LOGIC: Check the Access table before completing login
+    const adminAccess = await Access.findOne({ email: user.email.toLowerCase() });
+
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role }, 
+      { 
+        id: user._id, 
+        email: user.email, 
+        role: user.role,
+        isAdmin: !!adminAccess // ✅ Inject true/false based on Access table
+      }, 
       process.env.JWT_SECRET || 'fallback_secret', 
       { expiresIn: '24h' }
     );
@@ -186,7 +192,8 @@ exports.loginUser = async (req, res) => {
         name: user.name,
         role: user.role,
         isVerified: user.isVerified,
-        status: user.status
+        status: user.status,
+        isAdmin: !!adminAccess // ✅ Frontend uses this to show/hide Admin UI
       }
     });
 
