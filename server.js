@@ -6,6 +6,9 @@ const http = require('http'); // Required for Socket.io
 const { Server } = require('socket.io'); // Required for Socket.io
 require('dotenv').config();
 
+// ✅ NEW: Import Janitor Protocol
+const runJanitor = require('./utils/janitor');
+
 const app = express();
 
 // --- SOCKET.IO SERVER SETUP ---
@@ -26,6 +29,9 @@ const io = new Server(server, {
 
 // 1. DATABASE CONNECT
 connectDB();
+
+// ✅ NEW: START THE AUTO-PURGE ENGINE (1-minute test active)
+runJanitor();
 
 // 2. MIDDLEWARE
 app.use(cors({
@@ -50,9 +56,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/password', require('./routes/passwordRoutes'));
 
 // ✅ FIX: LOAD BOTH ADMIN FILES
-// Original admin logic (User Verification, etc.)
 app.use('/api/admin-core', require('./routes/admin')); 
-// New Dashboard logic (Stats)
 app.use('/api/admin', require('./routes/adminRoutes')); 
 
 app.use('/api/posts', require('./routes/postRoutes')); 
@@ -85,7 +89,6 @@ io.on('connection', (socket) => {
 
     // Send/Receive Message
     socket.on('send_message', (data) => {
-        // Broadcasts to everyone in the room EXCEPT the sender
         socket.to(data.chatRoomId).emit('receive_message', data);
     });
 
@@ -94,29 +97,26 @@ io.on('connection', (socket) => {
     });
 });
 
-// 5. GLOBAL ERROR CATCHER (UPDATED: Diagnosing the 500 Error)
+// 5. GLOBAL ERROR CATCHER
 app.use((err, req, res, next) => {
     console.error('CRITICAL_SYSTEM_ERROR:', err); 
     res.status(500).json({ 
         success: false, 
         msg: 'Internal System Failure', 
-        actualError: err.message, // This will reveal the culprit in your browser
+        actualError: err.message, 
         errorType: err.name 
     });
 });
 
 const PORT = process.env.PORT || 5000;
-// Note: We use server.listen instead of app.listen to support Sockets
 server.listen(PORT, () => {
     console.log(`🚀 TERMINAL ACTIVE ON PORT ${PORT}`);
+    console.log(`🧹 JANITOR AUTO-PURGE PROTOCOL ACTIVE`);
     console.log(`📊 MAIN DASHBOARD PROTOCOL LIVE AT /api/admin`);
     console.log(`🛡️  ADMIN CORE PROTOCOL LIVE AT /api/admin-core`);
     console.log(`📡 VIP INTEL PROTOCOL LIVE AT /api/vip`);
-    console.log(`📂 ROLE UPGRADE SYSTEM LIVE AT /api/role-request`);
     console.log(`🛰️  HANDSHAKE PROTOCOL LIVE AT /api/requests`);
     console.log(`💬 SECURE CHAT PROTOCOL LIVE AT /api/chat`);
     console.log(`🤝 CONNECTION PROTOCOL LIVE AT /api/connections`);
-    console.log(`🔑 ACCESS CONTROL PROTOCOL LIVE AT /api/access`);
-    console.log(`🔓 PASSWORD RECOVERY PROTOCOL LIVE AT /api/password`);
     console.log(`⚡ SOCKET.IO ENGINE ONLINE`);
 });

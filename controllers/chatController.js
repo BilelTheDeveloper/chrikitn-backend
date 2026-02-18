@@ -59,11 +59,12 @@ exports.sendMessage = async (req, res) => {
         });
 
         // ✅ POPULATE SENDER DATA BEFORE SENDING BACK TO FRONTEND
-        // This ensures identityImage (Cloudinary URL) and name are included
         const populatedMessage = await Message.findById(newMessage._id).populate('sender', 'name identityImage');
 
-        // Update the Connection's lastMessage reference
+        // Update the Connection's lastMessage reference 
+        // ✅ HEARTBEAT UPDATE: Also updates lastActivity so the Janitor doesn't purge active chats
         connection.lastMessage = newMessage._id;
+        connection.lastActivity = Date.now(); 
         await connection.save();
 
         res.status(201).json({ success: true, data: populatedMessage });
