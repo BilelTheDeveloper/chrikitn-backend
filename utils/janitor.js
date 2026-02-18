@@ -11,7 +11,7 @@ const runJanitor = () => {
         try {
             // TEST VALUE: 1 minute (60,000 ms)
             // PRODUCTION VALUE later: (5 * 24 * 60 * 60 * 1000)
-            const expirationLimit = 1 * 60 * 1000; 
+            const expirationLimit = 5 * 24 * 60 * 60 * 1000;
             const threshold = new Date(Date.now() - expirationLimit);
 
             // 1. Find connections idle longer than threshold
