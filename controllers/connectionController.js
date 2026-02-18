@@ -89,17 +89,20 @@ exports.toggleReady = async (req, res) => {
             connection.eliteReady.push(userId);
         }
 
-        // Update status string if both are ready (for visual feedback later)
+        // ✅ UPDATE: When both are ready, flip isElite to true to protect from Janitor
         if (connection.eliteReady.length === 2) {
             connection.status = 'elite_pending';
+            connection.isElite = true; 
         } else {
             connection.status = 'negotiating';
+            connection.isElite = false; // Reset if someone un-clicks
         }
 
         await connection.save();
 
         res.status(200).json({ 
             success: true, 
+            isElite: connection.isElite,
             readyCount: connection.eliteReady.length 
         });
     } catch (err) {
