@@ -5,12 +5,19 @@ const Notification = require('../models/Notification');
 // @access  Protected
 exports.getUserNotifications = async (req, res) => {
   try {
-    // 1. Fetch all notifications where the user is the recipient
-    // 2. Populate sender details so we can show who sent the invite
+    // 1. Fetch notifications for the logged-in user
     const signals = await Notification.find({ recipient: req.user._id })
-      .populate('sender', 'name identityImage speciality customSpeciality')
-      .populate('metadata.collectiveId', 'name logo') // Optional: populate collective info too
-      .sort({ createdAt: -1 }); // Newest first
+      .populate({
+        path: 'sender',
+        select: 'name identityImage speciality customSpeciality'
+      })
+      .sort({ createdAt: -1 });
+
+    // 🔍 THE TRUTH LOG: Check your backend terminal/server logs!
+    console.log(`📡 DB_SCAN: Found ${signals.length} signals for User ID: ${req.user._id}`);
+    if (signals.length > 0) {
+        console.log("📝 FIRST_SIGNAL_TYPE:", signals[0].type);
+    }
 
     res.status(200).json({
       success: true,
