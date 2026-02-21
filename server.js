@@ -77,6 +77,9 @@ app.use('/api/chat', require('./routes/chatRoutes'));
 // ✅ CONNECTION LIST PROTOCOL
 app.use('/api/connections', require('./routes/connectionRoutes'));
 
+// ✅ COLLECTIVE SYNDICATE PROTOCOL (NEW PHASE)
+app.use('/api/collectives', require('./routes/collectiveRoutes'));
+
 // --- SOCKET.IO LOGIC (The Tunnel) ---
 io.on('connection', (socket) => {
     console.log('📡 NEW OPERATIVE CONNECTED:', socket.id);
@@ -118,5 +121,6 @@ server.listen(PORT, () => {
     console.log(`🛰️  HANDSHAKE PROTOCOL LIVE AT /api/requests`);
     console.log(`💬 SECURE CHAT PROTOCOL LIVE AT /api/chat`);
     console.log(`🤝 CONNECTION PROTOCOL LIVE AT /api/connections`);
+    console.log(`🧬 COLLECTIVE PROTOCOL LIVE AT /api/collectives`);
     console.log(`⚡ SOCKET.IO ENGINE ONLINE`);
 });
