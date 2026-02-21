@@ -8,20 +8,31 @@ exports.initiateCollective = async (req, res) => {
     
     // 1. Role Verification (Strict Protocol)
     if (req.user.role !== 'Freelancer') {
-      return res.status(403).json({ msg: "Only Freelancers can found a Syndicate." });
+      return res.status(403).json({ success: false, msg: "Only Freelancers can found a Syndicate." });
     }
 
-    // 2. Asset Check
+    // 2. Asset Check (CRITICAL FIX: Safety check before accessing .path)
     if (!req.files || !req.files.logo || !req.files.background) {
-      return res.status(400).json({ msg: "Brand Logo and Hero Visual are required." });
+      return res.status(400).json({ 
+        success: false, 
+        msg: "Mission Assets Missing: Both Logo and Hero Background are required." 
+      });
     }
 
     // 3. Unique Identity Check
     const existing = await Collective.findOne({ name });
-    if (existing) return res.status(400).json({ msg: "This Collective name is already active." });
+    if (existing) return res.status(400).json({ success: false, msg: "This Collective name is already active." });
 
-    // 4. Parse Members
-    const parsedIds = JSON.parse(memberIds);
+    // 4. Parse Members Safely (CRITICAL FIX: Prevent JSON.parse crash)
+    let parsedIds = [];
+    if (memberIds) {
+      try {
+        parsedIds = JSON.parse(memberIds);
+      } catch (e) {
+        return res.status(400).json({ success: false, msg: "Invalid format for member data." });
+      }
+    }
+
     const membersList = parsedIds.map(id => ({
       user: id,
       status: 'Pending'
@@ -42,18 +53,17 @@ exports.initiateCollective = async (req, res) => {
     await newCollective.save();
 
     // 6. PHASE 2: Recruitment Handshake
-    const invitations = parsedIds.map(targetId => ({
-      recipient: targetId,
-      sender: req.user._id, 
-      type: 'COLLECTIVE_INVITE',
-      title: 'Syndicate Recruitment',
-      message: `${req.user.name} wants you to join the "${name}" Collective.`,
-      metadata: { 
-        collectiveId: newCollective._id 
-      }
-    }));
-
-    if (invitations.length > 0) {
+    if (parsedIds.length > 0) {
+      const invitations = parsedIds.map(targetId => ({
+        recipient: targetId,
+        sender: req.user._id, 
+        type: 'COLLECTIVE_INVITE',
+        title: 'Syndicate Recruitment',
+        message: `${req.user.name} wants you to join the "${name}" Collective.`,
+        metadata: { 
+          collectiveId: newCollective._id 
+        }
+      }));
       await Notification.insertMany(invitations);
     }
 
@@ -89,7 +99,7 @@ exports.acceptInvitation = async (req, res) => {
       return res.status(403).json({ success: false, msg: "Authorization Failure: You are not drafted for this syndicate." });
     }
 
-    collective.members[memberIndex].status = 'Joined'; // Note: Changed 'Accepted' to 'Joined' to match your logic
+    collective.members[memberIndex].status = 'Joined'; 
     await collective.save();
 
     if (notificationId) {
@@ -111,13 +121,8 @@ exports.acceptInvitation = async (req, res) => {
   }
 };
 
-/**
- * ✅ NEW: GET ALL COLLECTIVES (Kills the 404 Error)
- * @route GET /api/collectives
- */
 exports.getAllCollectives = async (req, res) => {
   try {
-    // Populate the owner to show who leads the syndicate in the feed
     const collectives = await Collective.find()
       .populate('owner', 'name identityImage speciality')
       .sort({ createdAt: -1 });
@@ -133,10 +138,6 @@ exports.getAllCollectives = async (req, res) => {
   }
 };
 
-/**
- * ✅ NEW: GET SINGLE COLLECTIVE
- * @route GET /api/collectives/:id
- */
 exports.getCollectiveById = async (req, res) => {
   try {
     const collective = await Collective.findById(req.params.id)
