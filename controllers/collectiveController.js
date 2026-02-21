@@ -7,12 +7,11 @@ exports.initiateCollective = async (req, res) => {
     const { name, slogan, description, memberIds } = req.body;
     
     // 1. Role Verification (Strict Protocol)
-    // Your middleware attaches the user to req.user
     if (req.user.role !== 'Freelancer') {
       return res.status(403).json({ msg: "Only Freelancers can found a Syndicate." });
     }
 
-    // 2. Asset Check (Logo and Background from Cloudinary)
+    // 2. Asset Check
     if (!req.files || !req.files.logo || !req.files.background) {
       return res.status(400).json({ msg: "Brand Logo and Hero Visual are required." });
     }
@@ -21,7 +20,7 @@ exports.initiateCollective = async (req, res) => {
     const existing = await Collective.findOne({ name });
     if (existing) return res.status(400).json({ msg: "This Collective name is already active." });
 
-    // 4. Parse Members (Coming as a JSON string from Frontend FormData)
+    // 4. Parse Members
     const parsedIds = JSON.parse(memberIds);
     const membersList = parsedIds.map(id => ({
       user: id,
@@ -33,20 +32,19 @@ exports.initiateCollective = async (req, res) => {
       name,
       slogan,
       description,
-      logo: req.files.logo[0].path, // Cloudinary URL provided by Multer-Storage-Cloudinary
-      heroBackground: req.files.background[0].path, // Cloudinary URL
-      owner: req.user._id, // ✅ FIXED: Changed .id to ._id to match your User Model
+      logo: req.files.logo[0].path, 
+      heroBackground: req.files.background[0].path, 
+      owner: req.user._id, 
       members: membersList,
       status: 'Assembling'
     });
 
     await newCollective.save();
 
-    // 6. PHASE 2: Recruitment Handshake (Send Notifications)
-    // We create a notification for every invited member
+    // 6. PHASE 2: Recruitment Handshake
     const invitations = parsedIds.map(targetId => ({
       recipient: targetId,
-      sender: req.user._id, // ✅ FIXED: Changed .id to ._id
+      sender: req.user._id, 
       type: 'COLLECTIVE_INVITE',
       title: 'Syndicate Recruitment',
       message: `${req.user.name} wants you to join the "${name}" Collective.`,
@@ -55,7 +53,6 @@ exports.initiateCollective = async (req, res) => {
       }
     }));
 
-    // Insert all notifications at once for speed
     if (invitations.length > 0) {
       await Notification.insertMany(invitations);
     }
@@ -76,21 +73,14 @@ exports.initiateCollective = async (req, res) => {
   }
 };
 
-/**
- * ✅ NEW: ACCEPT SYNDICATE INVITATION
- * Logic: Updates Collective member status and closes the notification CTA.
- */
 exports.acceptInvitation = async (req, res) => {
   try {
     const { notificationId } = req.body;
-
-    // 1. Locate the Syndicate
     const collective = await Collective.findById(req.params.id);
     if (!collective) {
       return res.status(404).json({ success: false, msg: "Syndicate not found" });
     }
 
-    // 2. Identify the member in the draft list
     const memberIndex = collective.members.findIndex(
       (m) => m.user.toString() === req.user._id.toString()
     );
@@ -99,11 +89,9 @@ exports.acceptInvitation = async (req, res) => {
       return res.status(403).json({ success: false, msg: "Authorization Failure: You are not drafted for this syndicate." });
     }
 
-    // 3. Update Status to 'Joined'
-    collective.members[memberIndex].status = 'Joined';
+    collective.members[memberIndex].status = 'Joined'; // Note: Changed 'Accepted' to 'Joined' to match your logic
     await collective.save();
 
-    // 4. Finalize Notification (Mark CTA as Completed)
     if (notificationId) {
       await Notification.findByIdAndUpdate(notificationId, { 
         ctaStatus: 'Completed',
@@ -120,5 +108,51 @@ exports.acceptInvitation = async (req, res) => {
   } catch (err) {
     console.error("ACCEPT_INVITE_CRITICAL_ERROR:", err);
     res.status(500).json({ success: false, msg: "Internal Handshake Failure" });
+  }
+};
+
+/**
+ * ✅ NEW: GET ALL COLLECTIVES (Kills the 404 Error)
+ * @route GET /api/collectives
+ */
+exports.getAllCollectives = async (req, res) => {
+  try {
+    // Populate the owner to show who leads the syndicate in the feed
+    const collectives = await Collective.find()
+      .populate('owner', 'name identityImage speciality')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: collectives.length,
+      data: collectives
+    });
+  } catch (err) {
+    console.error("GET_ALL_COLLECTIVES_ERROR:", err);
+    res.status(500).json({ success: false, msg: "Failed to fetch syndicate feed." });
+  }
+};
+
+/**
+ * ✅ NEW: GET SINGLE COLLECTIVE
+ * @route GET /api/collectives/:id
+ */
+exports.getCollectiveById = async (req, res) => {
+  try {
+    const collective = await Collective.findById(req.params.id)
+      .populate('owner', 'name identityImage speciality portfolioUrl')
+      .populate('members.user', 'name identityImage speciality');
+
+    if (!collective) {
+      return res.status(404).json({ success: false, msg: "Syndicate not found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: collective
+    });
+  } catch (err) {
+    console.error("GET_COLLECTIVE_ERROR:", err);
+    res.status(500).json({ success: false, msg: "Failed to retrieve portal data." });
   }
 };
