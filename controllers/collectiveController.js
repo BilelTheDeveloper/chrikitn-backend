@@ -52,7 +52,7 @@ exports.initiateCollective = async (req, res) => {
 
     await newCollective.save();
 
-    // 6. PHASE 2: Recruitment Handshake
+    // 6. PHASE 2: Recruitment Handshake (WITH LOGGING)
     if (parsedIds.length > 0) {
       const invitations = parsedIds.map(targetId => ({
         recipient: targetId,
@@ -62,9 +62,12 @@ exports.initiateCollective = async (req, res) => {
         message: `${req.user.name} wants you to join the "${name}" Collective.`,
         metadata: { 
           collectiveId: newCollective._id 
-        }
+        },
+        ctaStatus: 'Pending' // Explicitly set to ensure it shows up as actionable
       }));
-      await Notification.insertMany(invitations);
+      
+      const dispatchResult = await Notification.insertMany(invitations);
+      console.log(`✅ SYNDICATE SIGNAL: ${dispatchResult.length} notifications dispatched for ${name}`);
     }
 
     res.status(201).json({ 
