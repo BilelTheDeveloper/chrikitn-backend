@@ -80,6 +80,9 @@ app.use('/api/connections', require('./routes/connectionRoutes'));
 // ✅ COLLECTIVE SYNDICATE PROTOCOL (NEW PHASE)
 app.use('/api/collectives', require('./routes/collectiveRoutes'));
 
+// ✅ GLOBAL SEARCH PROTOCOL (NEW: Operative Discovery)
+app.use('/api/search', require('./routes/searchRoutes'));
+
 // --- SOCKET.IO LOGIC (The Tunnel) ---
 io.on('connection', (socket) => {
     console.log('📡 NEW OPERATIVE CONNECTED:', socket.id);
@@ -122,5 +125,6 @@ server.listen(PORT, () => {
     console.log(`💬 SECURE CHAT PROTOCOL LIVE AT /api/chat`);
     console.log(`🤝 CONNECTION PROTOCOL LIVE AT /api/connections`);
     console.log(`🧬 COLLECTIVE PROTOCOL LIVE AT /api/collectives`);
+    console.log(`🔍 SEARCH PROTOCOL LIVE AT /api/search`);
     console.log(`⚡ SOCKET.IO ENGINE ONLINE`);
 });
