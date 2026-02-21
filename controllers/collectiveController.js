@@ -63,7 +63,7 @@ exports.initiateCollective = async (req, res) => {
         metadata: { 
           collectiveId: newCollective._id 
         },
-        ctaStatus: 'Pending' // Explicitly set to ensure it shows up as actionable
+        ctaStatus: 'Pending' 
       }));
       
       const dispatchResult = await Notification.insertMany(invitations);
@@ -102,7 +102,8 @@ exports.acceptInvitation = async (req, res) => {
       return res.status(403).json({ success: false, msg: "Authorization Failure: You are not drafted for this syndicate." });
     }
 
-    collective.members[memberIndex].status = 'Joined'; 
+    // ✅ FIX: Changed 'Joined' to 'Accepted' to match your Collective Model Schema
+    collective.members[memberIndex].status = 'Accepted'; 
     await collective.save();
 
     if (notificationId) {
