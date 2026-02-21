@@ -75,3 +75,50 @@ exports.initiateCollective = async (req, res) => {
     });
   }
 };
+
+/**
+ * ✅ NEW: ACCEPT SYNDICATE INVITATION
+ * Logic: Updates Collective member status and closes the notification CTA.
+ */
+exports.acceptInvitation = async (req, res) => {
+  try {
+    const { notificationId } = req.body;
+
+    // 1. Locate the Syndicate
+    const collective = await Collective.findById(req.params.id);
+    if (!collective) {
+      return res.status(404).json({ success: false, msg: "Syndicate not found" });
+    }
+
+    // 2. Identify the member in the draft list
+    const memberIndex = collective.members.findIndex(
+      (m) => m.user.toString() === req.user._id.toString()
+    );
+
+    if (memberIndex === -1) {
+      return res.status(403).json({ success: false, msg: "Authorization Failure: You are not drafted for this syndicate." });
+    }
+
+    // 3. Update Status to 'Joined'
+    collective.members[memberIndex].status = 'Joined';
+    await collective.save();
+
+    // 4. Finalize Notification (Mark CTA as Completed)
+    if (notificationId) {
+      await Notification.findByIdAndUpdate(notificationId, { 
+        ctaStatus: 'Completed',
+        isRead: true 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      msg: "Syndicate Handshake Confirmed. Welcome to the team.",
+      collective 
+    });
+
+  } catch (err) {
+    console.error("ACCEPT_INVITE_CRITICAL_ERROR:", err);
+    res.status(500).json({ success: false, msg: "Internal Handshake Failure" });
+  }
+};
