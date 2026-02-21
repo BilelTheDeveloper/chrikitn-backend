@@ -71,6 +71,9 @@ app.use('/api/role-request', require('./routes/roleRequestRoutes'));
 // ✅ MISSION HANDSHAKE SYSTEM (New Phase)
 app.use('/api/requests', require('./routes/requestRoutes'));
 
+// ✅ NOTIFICATION SIGNAL PROTOCOL (NEW: Centralized Intel Hub)
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+
 // ✅ SECURE CHAT PROTOCOL
 app.use('/api/chat', require('./routes/chatRoutes'));
 
@@ -98,6 +101,7 @@ io.on('connection', (socket) => {
         socket.to(data.chatRoomId).emit('receive_message', data);
     });
 
+    // Handle Collective Notification Broadcast (Optional enhancement later)
     socket.on('disconnect', () => {
         console.log('🔌 OPERATIVE DISCONNECTED');
     });
@@ -122,6 +126,7 @@ server.listen(PORT, () => {
     console.log(`🛡️  ADMIN CORE PROTOCOL LIVE AT /api/admin-core`);
     console.log(`📡 VIP INTEL PROTOCOL LIVE AT /api/vip`);
     console.log(`🛰️  HANDSHAKE PROTOCOL LIVE AT /api/requests`);
+    console.log(`🔔 NOTIFICATION PROTOCOL LIVE AT /api/notifications`);
     console.log(`💬 SECURE CHAT PROTOCOL LIVE AT /api/chat`);
     console.log(`🤝 CONNECTION PROTOCOL LIVE AT /api/connections`);
     console.log(`🧬 COLLECTIVE PROTOCOL LIVE AT /api/collectives`);
