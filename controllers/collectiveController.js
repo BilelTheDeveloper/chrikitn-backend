@@ -4,14 +4,12 @@ const User = require('../models/User');
 
 exports.initiateCollective = async (req, res) => {
   try {
-    const { name, slogan, description, memberIds, services } = req.body; // ✅ Added services
+    const { name, slogan, description, memberIds, services } = req.body; 
     
-    // 1. Role Verification (Strict Protocol)
     if (req.user.role !== 'Freelancer') {
       return res.status(403).json({ success: false, msg: "Only Freelancers can found a Syndicate." });
     }
 
-    // 2. Asset Check (Safety check)
     if (!req.files || !req.files.logo || !req.files.background) {
       return res.status(400).json({ 
         success: false, 
@@ -19,11 +17,9 @@ exports.initiateCollective = async (req, res) => {
       });
     }
 
-    // 3. Unique Identity Check
     const existing = await Collective.findOne({ name });
     if (existing) return res.status(400).json({ success: false, msg: "This Collective name is already active." });
 
-    // 4. Parse Members Safely
     let parsedIds = [];
     if (memberIds) {
       try {
@@ -38,7 +34,6 @@ exports.initiateCollective = async (req, res) => {
       status: 'Pending'
     }));
 
-    // ✅ NEW: 4.5 Parse and Validate Services
     let parsedServices = [];
     if (services) {
       try {
@@ -51,7 +46,6 @@ exports.initiateCollective = async (req, res) => {
       }
     }
 
-    // 5. Build Collective Record (Using WebP paths from Sharp)
     const newCollective = new Collective({
       name,
       slogan,
@@ -60,13 +54,12 @@ exports.initiateCollective = async (req, res) => {
       heroBackground: req.files.background[0].path, 
       owner: req.user._id, 
       members: membersList,
-      services: parsedServices, // ✅ Added to the record
+      services: parsedServices,
       status: 'Assembling'
     });
 
     await newCollective.save();
 
-    // 6. PHASE 2: Recruitment Handshake
     if (parsedIds.length > 0) {
       const invitations = parsedIds.map(targetId => ({
         recipient: targetId,
@@ -116,14 +109,11 @@ exports.acceptInvitation = async (req, res) => {
       return res.status(403).json({ success: false, msg: "Authorization Failure: You are not drafted for this syndicate." });
     }
 
-    // Update member status
     collective.members[memberIndex].status = 'Accepted'; 
 
-    // ✅ UPDATE: Check if ALL members have now accepted
     const allAccepted = collective.members.every(member => member.status === 'Accepted');
     
     if (allAccepted) {
-        // If everyone is in, move to the Admin Gate
         collective.status = 'Awaiting Admin';
         console.log(`🚀 Collective "${collective.name}" is now ready for Admin deployment.`);
     }
@@ -151,10 +141,8 @@ exports.acceptInvitation = async (req, res) => {
   }
 };
 
-// --- NEW UPDATE: ADMIN DEPLOYMENT GATE ---
 exports.deployCollective = async (req, res) => {
   try {
-    // 1. Admin Verification
     if (req.user.role !== 'Admin') {
       return res.status(403).json({ 
         success: false, 
@@ -167,7 +155,6 @@ exports.deployCollective = async (req, res) => {
       return res.status(404).json({ success: false, msg: "Syndicate not found." });
     }
 
-    // 2. State Check
     if (collective.status !== 'Awaiting Admin') {
       return res.status(400).json({ 
         success: false, 
@@ -175,14 +162,12 @@ exports.deployCollective = async (req, res) => {
       });
     }
 
-    // 3. Final Deployment Transformation
     collective.status = 'Active';
     collective.isDeployed = true;
     collective.deployedAt = Date.now();
 
     await collective.save();
 
-    // 4. Notify the Owner that their web-in-web is live
     await Notification.create({
       recipient: collective.owner,
       sender: req.user._id,
@@ -207,7 +192,7 @@ exports.deployCollective = async (req, res) => {
 exports.getAllCollectives = async (req, res) => {
   try {
     const collectives = await Collective.find()
-      .populate('owner', 'name identityImage speciality')
+      .populate('owner', 'name biometricImage speciality')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -221,11 +206,12 @@ exports.getAllCollectives = async (req, res) => {
   }
 };
 
+// ✅ UPDATED: Added biometricImage and portfolioUrl to the population
 exports.getCollectiveById = async (req, res) => {
   try {
     const collective = await Collective.findById(req.params.id)
-      .populate('owner', 'name identityImage speciality portfolioUrl')
-      .populate('members.user', 'name identityImage speciality');
+      .populate('owner', 'name biometricImage speciality portfolioUrl')
+      .populate('members.user', 'name biometricImage speciality portfolioUrl'); // Fetching extra user details
 
     if (!collective) {
       return res.status(404).json({ success: false, msg: "Syndicate not found." });
