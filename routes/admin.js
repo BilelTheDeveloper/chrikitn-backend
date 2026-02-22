@@ -4,11 +4,6 @@ const User = require('../models/User'); // Path to your User model
 const fs = require('fs'); // Required to delete physical files
 const path = require('path');
 
-// NEW: Import Admin Controller for the new logic
-const adminController = require('../controllers/adminController');
-// NEW: Import Middleware (Assuming you have these for protection)
-const { protect, admin } = require('../middleware/authMiddleware');
-
 // @route   GET /api/admin/users
 // @desc    Get all users for the verification table
 router.get('/users', async (req, res) => {
@@ -73,18 +68,5 @@ router.delete('/users/:id', async (req, res) => {
     res.status(500).json({ msg: "System Error: Purge sequence failed" });
   }
 });
-
-// --- NEW COLLECTIVE DEPLOYMENT ROUTES ---
-
-// @route   GET /api/admin/dashboard-stats
-router.get('/dashboard-stats', protect, admin, adminController.getDashboardStats);
-
-// @route   GET /api/admin/pending-collectives
-// @desc    Fetch syndicates awaiting admin approval
-router.get('/pending-collectives', protect, admin, adminController.getPendingCollectives);
-
-// @route   PUT /api/admin/deploy-collective/:id
-// @desc    Final deployment switch
-router.put('/deploy-collective/:id', protect, admin, adminController.deployCollective);
 
 module.exports = router;
