@@ -53,11 +53,12 @@ exports.initiateRequest = async (req, res) => {
         await Notification.create({
             recipient: receiverId,
             sender: senderId,
-            type: 'MISSION_REQUEST', // Matches your frontend enum check
+            type: 'MISSION_REQUEST', 
             title: 'New Mission Briefing',
-            message: missionGoal, // Using the goal as the preview message
+            message: missionGoal, 
             metadata: {
-                requestId: newRequest._id, // Critical for the "Accept" button
+                requestId: newRequest._id, // ✅ SYNCED: For the frontend Accept button
+                missionId: newRequest._id, // ✅ LEGACY: Keeping missionId for safety
                 postId: postId
             },
             ctaStatus: 'Pending'
@@ -108,8 +109,13 @@ exports.respondToRequest = async (req, res) => {
             return res.status(401).json({ msg: "Unauthorized protocol access." });
         }
 
-        // ✅ CLEANUP: Remove the notification alert once the user responds
-        await Notification.findOneAndDelete({ 'metadata.requestId': requestId });
+        // ✅ CLEANUP: Remove the notification alert using either ID field in metadata
+        await Notification.findOneAndDelete({
+            $or: [
+                { 'metadata.requestId': requestId },
+                { 'metadata.missionId': requestId }
+            ]
+        });
 
         if (action === 'reject') {
             await Request.findByIdAndDelete(requestId);
