@@ -11,7 +11,7 @@ exports.initiateCollective = async (req, res) => {
       return res.status(403).json({ success: false, msg: "Only Freelancers can found a Syndicate." });
     }
 
-    // 2. Asset Check (CRITICAL FIX: Safety check before accessing .path)
+    // 2. Asset Check (Safety check)
     if (!req.files || !req.files.logo || !req.files.background) {
       return res.status(400).json({ 
         success: false, 
@@ -23,7 +23,7 @@ exports.initiateCollective = async (req, res) => {
     const existing = await Collective.findOne({ name });
     if (existing) return res.status(400).json({ success: false, msg: "This Collective name is already active." });
 
-    // 4. Parse Members Safely (CRITICAL FIX: Prevent JSON.parse crash)
+    // 4. Parse Members Safely
     let parsedIds = [];
     if (memberIds) {
       try {
@@ -38,7 +38,7 @@ exports.initiateCollective = async (req, res) => {
       status: 'Pending'
     }));
 
-    // 5. Build Collective Record
+    // 5. Build Collective Record (Using WebP paths from Sharp)
     const newCollective = new Collective({
       name,
       slogan,
@@ -52,7 +52,7 @@ exports.initiateCollective = async (req, res) => {
 
     await newCollective.save();
 
-    // 6. PHASE 2: Recruitment Handshake (WITH LOGGING)
+    // 6. PHASE 2: Recruitment Handshake
     if (parsedIds.length > 0) {
       const invitations = parsedIds.map(targetId => ({
         recipient: targetId,
@@ -102,8 +102,18 @@ exports.acceptInvitation = async (req, res) => {
       return res.status(403).json({ success: false, msg: "Authorization Failure: You are not drafted for this syndicate." });
     }
 
-    // ✅ FIX: Changed 'Joined' to 'Accepted' to match your Collective Model Schema
+    // Update member status
     collective.members[memberIndex].status = 'Accepted'; 
+
+    // ✅ UPDATE: Check if ALL members have now accepted
+    const allAccepted = collective.members.every(member => member.status === 'Accepted');
+    
+    if (allAccepted) {
+        // If everyone is in, move to the Admin Gate
+        collective.status = 'Awaiting Admin';
+        console.log(`🚀 Collective "${collective.name}" is now ready for Admin deployment.`);
+    }
+
     await collective.save();
 
     if (notificationId) {
@@ -115,7 +125,9 @@ exports.acceptInvitation = async (req, res) => {
 
     res.json({ 
       success: true, 
-      msg: "Syndicate Handshake Confirmed. Welcome to the team.",
+      msg: allAccepted 
+        ? "Handshake Confirmed. All members are in! Awaiting Admin deployment." 
+        : "Syndicate Handshake Confirmed. Waiting for other members.",
       collective 
     });
 

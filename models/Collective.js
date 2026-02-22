@@ -55,15 +55,24 @@ const CollectiveSchema = new mongoose.Schema({
     link: String
   }],
 
-  // 4. OPERATIONAL STATUS
+  // 4. OPERATIONAL STATUS & DEPLOYMENT GATES
   rating: {
     type: Number,
     default: 0
   },
   status: {
     type: String,
-    enum: ['Assembling', 'Active', 'Suspended'],
-    default: 'Assembling' // Remains Assembling until all members Accept
+    // Updated enum to include the Admin Approval phase
+    enum: ['Assembling', 'Awaiting Admin', 'Active', 'Suspended'],
+    default: 'Assembling' 
+  },
+  // New Flag: True only when Admin clicks "Deploy"
+  isDeployed: {
+    type: Boolean,
+    default: false
+  },
+  deployedAt: {
+    type: Date
   },
 
   createdAt: { 
