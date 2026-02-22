@@ -189,10 +189,35 @@ exports.deployCollective = async (req, res) => {
   }
 };
 
+// ✅ NEW: Terminate/Delete Collective logic for Admin rejection
+exports.deleteCollective = async (req, res) => {
+  try {
+    if (req.user.role !== 'Admin') {
+      return res.status(403).json({ success: false, msg: "Unauthorized: Admin access required." });
+    }
+
+    const collective = await Collective.findById(req.params.id);
+    if (!collective) {
+      return res.status(404).json({ success: false, msg: "Syndicate not found." });
+    }
+
+    await Collective.findByIdAndDelete(req.params.id);
+
+    res.json({ 
+      success: true, 
+      msg: `Syndicate "${collective.name}" has been terminated and purged from the database.` 
+    });
+
+  } catch (err) {
+    console.error("DELETE_COLLECTIVE_ERROR:", err);
+    res.status(500).json({ success: false, msg: "Termination Protocol Failure." });
+  }
+};
+
 exports.getAllCollectives = async (req, res) => {
   try {
-    const collectives = await Collective.find()
-      .populate('owner', 'name biometricImage speciality')
+    const collectives = await Collective.find({ status: 'Active' })
+      .populate('owner', 'name identityImage speciality')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -206,12 +231,11 @@ exports.getAllCollectives = async (req, res) => {
   }
 };
 
-// ✅ UPDATED: Added biometricImage and portfolioUrl to the population
 exports.getCollectiveById = async (req, res) => {
   try {
     const collective = await Collective.findById(req.params.id)
       .populate('owner', 'name identityImage speciality portfolioUrl')
-      .populate('members.user', 'name identityImage speciality portfolioUrl'); // Fetching extra user details
+      .populate('members.user', 'name identityImage speciality portfolioUrl'); 
 
     if (!collective) {
       return res.status(404).json({ success: false, msg: "Syndicate not found." });

@@ -5,18 +5,25 @@ const { protect } = require('../middleware/authMiddleware');
 const { 
   initiateCollective, 
   acceptInvitation,
-  getAllCollectives, // <--- NEW
-  getCollectiveById  // <--- NEW
+  deployCollective,
+  deleteCollective, // ✅ ADDED: The Termination Logic
+  getAllCollectives, 
+  getCollectiveById  
 } = require('../controllers/collectiveController');
 
-// ✅ DISCOVERY ROUTE: Fetch all collectives for the feed
-// This is the route the frontend is currently hitting and getting a 404 on
+// --- PUBLIC & DISCOVERY ---
+
+// ✅ DISCOVERY ROUTE: Fetch all ACTIVE collectives for the feed
 router.get('/', getAllCollectives);
 
-// ✅ PORTAL ROUTE: Fetch a single collective's data
+// ✅ PORTAL ROUTE: Fetch a single collective's data (Used for both Preview and Live)
 router.get('/:id', getCollectiveById);
 
-// FOUNDING ROUTE (Phase 1)
+
+// --- OPERATIONAL PHASES ---
+
+// 🛡️ PHASE 1: FOUNDING
+// Creates the Syndicate with "Assembling" status
 router.post(
   '/initiate', 
   protect, 
@@ -27,7 +34,16 @@ router.post(
   initiateCollective
 );
 
-// ACCEPT SYNDICATE INVITATION (Phase 2 Handshake)
+// 🤝 PHASE 2: THE HANDSHAKE
+// Members accept their recruitment invitations
 router.put('/accept/:id', protect, acceptInvitation);
+
+// 🚀 PHASE 3: DEPLOYMENT (ADMIN ONLY)
+// Final verification by Admin to move from "Awaiting Admin" to "Active"
+router.put('/deploy/:id', protect, deployCollective);
+
+// 🧨 PHASE 4: TERMINATION (ADMIN ONLY)
+// Admin rejects and purges the collective from the database
+router.delete('/:id', protect, deleteCollective);
 
 module.exports = router;
