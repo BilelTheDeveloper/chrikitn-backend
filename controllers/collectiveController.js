@@ -4,7 +4,7 @@ const User = require('../models/User');
 
 exports.initiateCollective = async (req, res) => {
   try {
-    const { name, slogan, description, memberIds } = req.body;
+    const { name, slogan, description, memberIds, services } = req.body; // ✅ Added services
     
     // 1. Role Verification (Strict Protocol)
     if (req.user.role !== 'Freelancer') {
@@ -38,6 +38,19 @@ exports.initiateCollective = async (req, res) => {
       status: 'Pending'
     }));
 
+    // ✅ NEW: 4.5 Parse and Validate Services
+    let parsedServices = [];
+    if (services) {
+      try {
+        parsedServices = JSON.parse(services);
+        if (parsedServices.length > 5) {
+          return res.status(400).json({ success: false, msg: "Operational Limit Reached: Max 5 services allowed." });
+        }
+      } catch (e) {
+        return res.status(400).json({ success: false, msg: "Invalid format for services data." });
+      }
+    }
+
     // 5. Build Collective Record (Using WebP paths from Sharp)
     const newCollective = new Collective({
       name,
@@ -47,6 +60,7 @@ exports.initiateCollective = async (req, res) => {
       heroBackground: req.files.background[0].path, 
       owner: req.user._id, 
       members: membersList,
+      services: parsedServices, // ✅ Added to the record
       status: 'Assembling'
     });
 

@@ -55,6 +55,15 @@ const CollectiveSchema = new mongoose.Schema({
     link: String
   }],
 
+  // ✅ NEW: SERVICES SECTION (Max 5)
+  services: {
+    type: [{
+      title: { type: String, required: true },
+      description: { type: String, required: true }
+    }],
+    validate: [arrayLimit, '{PATH} exceeds the limit of 5 services']
+  },
+
   // 4. OPERATIONAL STATUS & DEPLOYMENT GATES
   rating: {
     type: Number,
@@ -80,6 +89,11 @@ const CollectiveSchema = new mongoose.Schema({
     default: Date.now 
   }
 });
+
+// ✅ HELPER: VALIDATE MAX 5 SERVICES
+function arrayLimit(val) {
+  return val.length <= 5;
+}
 
 // Create an index to rank by rating for the feed
 CollectiveSchema.index({ rating: -1, status: 1 });
