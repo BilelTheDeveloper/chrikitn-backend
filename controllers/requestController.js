@@ -1,6 +1,7 @@
 const Request = require('../models/Request');
 const Connection = require('../models/Connection');
 const Post = require('../models/Post');
+const Notification = require('../models/Notification'); // ✅ ADDED: Required to trigger the alert
 
 // @desc    1. INITIATE MISSION (Brand sends request)
 // @route   POST /api/requests/initiate
@@ -37,7 +38,7 @@ exports.initiateRequest = async (req, res) => {
             return res.status(400).json({ success: false, msg: "Transmission already in progress for this operative." });
         }
 
-        // 4. Create based on your Model names
+        // 4. Create the Request
         const newRequest = await Request.create({
             sender: senderId,
             receiver: receiverId,
@@ -48,9 +49,23 @@ exports.initiateRequest = async (req, res) => {
             status: 'pending'
         });
 
+        // ✅ 5. CREATE NOTIFICATION (This makes it appear in the Comms Center)
+        await Notification.create({
+            recipient: receiverId,
+            sender: senderId,
+            type: 'MISSION_REQUEST', // Matches your frontend enum check
+            title: 'New Mission Briefing',
+            message: missionGoal, // Using the goal as the preview message
+            metadata: {
+                requestId: newRequest._id, // Critical for the "Accept" button
+                postId: postId
+            },
+            ctaStatus: 'Pending'
+        });
+
         res.status(201).json({ 
             success: true, 
-            msg: "Mission brief transmitted to the operative's terminal.",
+            msg: "Mission brief transmitted and signal dispatched.",
             data: newRequest 
         });
 
@@ -68,7 +83,6 @@ exports.getIncomingRequests = async (req, res) => {
             receiver: req.user.id, 
             status: 'pending' 
         })
-        // ✅ CLOUDINARY READY: identityImage will populate as a full URL
         .populate('sender', 'name identityImage role')
         .populate('relatedPost', 'title intelImage brandName globalService')
         .sort({ createdAt: -1 });
@@ -93,6 +107,9 @@ exports.respondToRequest = async (req, res) => {
         if (request.receiver.toString() !== req.user.id) {
             return res.status(401).json({ msg: "Unauthorized protocol access." });
         }
+
+        // ✅ CLEANUP: Remove the notification alert once the user responds
+        await Notification.findOneAndDelete({ 'metadata.requestId': requestId });
 
         if (action === 'reject') {
             await Request.findByIdAndDelete(requestId);
