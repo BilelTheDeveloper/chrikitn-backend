@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const VipPost = require('../models/VipPost');
-const Collective = require('../models/Collective'); // Added for collective management
+const Collective = require('../models/Collective');
+const Notification = require('../models/Notification'); // Added to handle deployment alerts
 
 // @desc    Get All Main Dashboard Stats
 // @route   GET /api/admin/dashboard-stats
@@ -104,6 +105,32 @@ exports.deployCollective = async (req, res) => {
     collective.deployedAt = Date.now();
 
     await collective.save();
+
+    // ✅ NEW UPDATE: Notify the owner that the collective is live
+    await Notification.create({
+      recipient: collective.owner,
+      sender: req.user._id, // The Admin
+      type: 'SYSTEM_ALERT',
+      title: 'Deployment Successful',
+      message: `Your collective "${collective.name}" is now live. Your web-in-web template has been generated.`,
+      metadata: { collectiveId: collective._id }
+    });
+
+    // ✅ NEW UPDATE: Notify all members that the team is officially active
+    const memberInvites = collective.members
+      .filter(m => m.status === 'Accepted')
+      .map(m => ({
+        recipient: m.user,
+        sender: req.user._id,
+        type: 'SYSTEM_ALERT',
+        title: 'Syndicate Active',
+        message: `The "${collective.name}" collective has been deployed. You are now an active operative.`,
+        metadata: { collectiveId: collective._id }
+      }));
+
+    if (memberInvites.length > 0) {
+      await Notification.insertMany(memberInvites);
+    }
 
     res.status(200).json({
       success: true,

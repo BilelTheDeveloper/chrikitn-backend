@@ -137,6 +137,59 @@ exports.acceptInvitation = async (req, res) => {
   }
 };
 
+// --- NEW UPDATE: ADMIN DEPLOYMENT GATE ---
+exports.deployCollective = async (req, res) => {
+  try {
+    // 1. Admin Verification
+    if (req.user.role !== 'Admin') {
+      return res.status(403).json({ 
+        success: false, 
+        msg: "Access Denied: Only Admins can deploy Syndicates." 
+      });
+    }
+
+    const collective = await Collective.findById(req.params.id);
+    if (!collective) {
+      return res.status(404).json({ success: false, msg: "Syndicate not found." });
+    }
+
+    // 2. State Check
+    if (collective.status !== 'Awaiting Admin') {
+      return res.status(400).json({ 
+        success: false, 
+        msg: "Deployment Failed: Members must all accept before admin verification." 
+      });
+    }
+
+    // 3. Final Deployment Transformation
+    collective.status = 'Active';
+    collective.isDeployed = true;
+    collective.deployedAt = Date.now();
+
+    await collective.save();
+
+    // 4. Notify the Owner that their web-in-web is live
+    await Notification.create({
+      recipient: collective.owner,
+      sender: req.user._id,
+      type: 'SYSTEM_ALERT',
+      title: 'Syndicate Deployed',
+      message: `Your Collective "${collective.name}" has been verified and is now LIVE.`,
+      metadata: { collectiveId: collective._id }
+    });
+
+    res.json({ 
+      success: true, 
+      msg: `Protocol Complete: ${collective.name} is now Active and Deployed.`,
+      collective 
+    });
+
+  } catch (err) {
+    console.error("DEPLOY_COLLECTIVE_ERROR:", err);
+    res.status(500).json({ success: false, msg: "Deployment Protocol Failure." });
+  }
+};
+
 exports.getAllCollectives = async (req, res) => {
   try {
     const collectives = await Collective.find()
