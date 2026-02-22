@@ -210,8 +210,8 @@ exports.getAllCollectives = async (req, res) => {
 exports.getCollectiveById = async (req, res) => {
   try {
     const collective = await Collective.findById(req.params.id)
-      .populate('owner', 'name biometricImage speciality portfolioUrl')
-      .populate('members.user', 'name biometricImage speciality portfolioUrl'); // Fetching extra user details
+      .populate('owner', 'name identityImage speciality portfolioUrl')
+      .populate('members.user', 'name identityImage speciality portfolioUrl'); // Fetching extra user details
 
     if (!collective) {
       return res.status(404).json({ success: false, msg: "Syndicate not found." });
