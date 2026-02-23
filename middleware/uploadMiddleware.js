@@ -21,7 +21,7 @@ const storage = new CloudinaryStorage({
     resource_type: 'auto', 
     
     // Limits the formats at the Cloudinary gate to prevent invalid uploads
-    allowed_formats: ['jpg', 'png', 'webp', 'mp4', 'mov', 'quicktime'],
+    allowed_formats: ['jpg', 'png', 'webp', 'WEBP', 'mp4', 'mov', 'quicktime'],
   },
 });
 
