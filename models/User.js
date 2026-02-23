@@ -40,6 +40,42 @@ const UserSchema = new mongoose.Schema({
     type: String, 
     default: '' 
   },
+  
+  // --- UPDATED: SUBSCRIPTION & PREMIUM PROTOCOL ---
+  subscriptionPlan: {
+    type: String,
+    enum: ['None', 'Monthly', 'Quarterly'],
+    default: 'None'
+  },
+  isPaused: {
+    type: Boolean,
+    default: false
+  },
+  isPremium: { 
+    type: Boolean, 
+    default: false 
+  },
+  // 🎁 The Gift: Starts with 90 days. 
+  // Future payments will extend this specific date.
+  accessUntil: { 
+    type: Date, 
+    default: () => new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) 
+  },
+  lastPaymentDate: {
+    type: Date,
+    default: null
+  },
+  // Keeping this so your old logic doesn't crash
+  trialExpiration: { 
+    type: Date, 
+    default: () => new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) 
+  },
+  bio: { 
+    type: String, 
+    maxlength: [160, "Bio protocol must be under 160 characters"],
+    default: "Neural Operative in the Collective." 
+  },
+  // ------------------------------------------
 
   // 3. Security & Verification
   isVerified: { 
@@ -66,7 +102,6 @@ const UserSchema = new mongoose.Schema({
     type: String, 
     required: [true, "Identity image evidence is required"] 
   },
-  // --- ADDED THIS FIELD ---
   biometricImage: { 
     type: String, 
     required: [true, "Biometric face capture is required"] 
