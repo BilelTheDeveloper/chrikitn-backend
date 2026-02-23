@@ -189,7 +189,6 @@ exports.deployCollective = async (req, res) => {
   }
 };
 
-// ✅ NEW: Terminate/Delete Collective logic for Admin rejection
 exports.deleteCollective = async (req, res) => {
   try {
     if (req.user.role !== 'Admin') {
@@ -218,6 +217,11 @@ exports.getAllCollectives = async (req, res) => {
   try {
     const collectives = await Collective.find({ status: 'Active' })
       .populate('owner', 'name identityImage speciality')
+      // ✅ ADDED: Populate nested member users for the main feed
+      .populate({
+        path: 'members.user',
+        select: 'name identityImage speciality portfolioUrl'
+      })
       .sort({ createdAt: -1 });
 
     res.status(200).json({
