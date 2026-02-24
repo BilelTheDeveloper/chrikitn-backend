@@ -13,8 +13,8 @@ exports.sendEmailOTP = async (email, otp) => {
       },
       body: JSON.stringify({
         sender: { 
-          name: "Chriki Security", 
-          email: "chrikitn.tn@gmail.com" 
+          name: "Chriki Team", 
+          email: "bilel.thedeveloper@gmail.com" 
         },
         to: [{ email: email }],
         subject: `🔐 IDENTITY VERIFICATION: [${otp}]`,
