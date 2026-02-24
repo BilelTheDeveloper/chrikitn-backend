@@ -71,7 +71,6 @@ exports.verifyOTP = async (req, res) => {
  */
 exports.registerUser = async (req, res) => {
   try {
-    // ✅ ADDED: speciality and customSpeciality extracted from req.body
     const { name, email, phone, password, role, portfolioUrl, otp, speciality, customSpeciality } = req.body;
 
     const record = tempOTPStore[email];
@@ -107,7 +106,6 @@ exports.registerUser = async (req, res) => {
       password,
       role,
       portfolioUrl: portfolioUrl || '',
-      // ✅ INJECTED: New badge fields into User creation
       speciality: speciality || '',
       customSpeciality: customSpeciality || '',
       identityImage: identityFile.path,  
@@ -122,7 +120,6 @@ exports.registerUser = async (req, res) => {
     await user.save();
     delete tempOTPStore[email];
 
-    // Check whitelist during registration just in case
     const adminAccess = await Access.findOne({ email: user.email.toLowerCase() });
 
     const token = jwt.sign(
@@ -140,6 +137,8 @@ exports.registerUser = async (req, res) => {
         role: user.role,
         isVerified: user.isVerified,
         status: user.status,
+        accessUntil: user.accessUntil, // ✅ ADDED: Send subscription end date
+        isPaused: user.isPaused,       // ✅ ADDED: Send pause status
         isAdmin: !!adminAccess 
       }
     });
@@ -174,7 +173,6 @@ exports.loginUser = async (req, res) => {
       });
     }
 
-    // ✅ WHITELIST LOGIC: Check the Access table before completing login
     const adminAccess = await Access.findOne({ email: user.email.toLowerCase() });
 
     const token = jwt.sign(
@@ -197,6 +195,8 @@ exports.loginUser = async (req, res) => {
         role: user.role,
         isVerified: user.isVerified,
         status: user.status,
+        accessUntil: user.accessUntil, // ✅ ADDED: Send subscription end date
+        isPaused: user.isPaused,       // ✅ ADDED: Send pause status
         isAdmin: !!adminAccess 
       }
     });
