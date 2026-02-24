@@ -9,8 +9,17 @@ exports.searchOperatives = async (req, res) => {
       return res.json([]);
     }
 
+    // 1. Define the Stasis Filters
+    const now = new Date();
+
     const results = await User.find({
       role: 'Freelancer',
+      status: 'Active',           // Must be verified by Admin
+      isVerified: true,           // Double check for security
+      isPaused: false,            // Must not be manually paused
+      accessUntil: { $gt: now },  // Must not be expired ($gt = Greater Than Now)
+      
+      // 2. The original search regex logic
       $or: [
         { name: { $regex: q, $options: 'i' } },
         { email: { $regex: q, $options: 'i' } }

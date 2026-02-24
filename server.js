@@ -11,6 +11,9 @@ const runJanitor = require('./utils/janitor');
 
 const app = express();
 
+// ✅ NEW: Trust Proxy (Crucial for Vercel/Production deployment security)
+app.set('trust proxy', 1);
+
 // --- SOCKET.IO SERVER SETUP ---
 const server = http.createServer(app);
 
@@ -86,6 +89,9 @@ app.use('/api/collectives', require('./routes/collectiveRoutes'));
 // ✅ GLOBAL SEARCH PROTOCOL (NEW: Operative Discovery)
 app.use('/api/search', require('./routes/searchRoutes'));
 
+// ✅ NEW: PAYMENT & SUBSCRIPTION PROTOCOL (D17 Verification)
+app.use('/api/payments', require('./routes/paymentRoutes'));
+
 // --- SOCKET.IO LOGIC (The Tunnel) ---
 io.on('connection', (socket) => {
     console.log('📡 NEW OPERATIVE CONNECTED:', socket.id);
@@ -131,5 +137,14 @@ server.listen(PORT, () => {
     console.log(`🤝 CONNECTION PROTOCOL LIVE AT /api/connections`);
     console.log(`🧬 COLLECTIVE PROTOCOL LIVE AT /api/collectives`);
     console.log(`🔍 SEARCH PROTOCOL LIVE AT /api/search`);
+    console.log(`💳 PAYMENT PROTOCOL LIVE AT /api/payments`);
     console.log(`⚡ SOCKET.IO ENGINE ONLINE`);
+});
+
+// ✅ NEW: HANDLE GRACEFUL SHUTDOWN (The Clean Exit)
+process.on('SIGTERM', () => {
+    console.log('📡 SIGTERM RECEIVED. Cleaning up the Syndicate...');
+    server.close(() => {
+        console.log('🔌 Process terminated safely.');
+    });
 });
