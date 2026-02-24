@@ -8,7 +8,7 @@ exports.uploadReceipt = async (req, res) => {
         const { plan, amount } = req.body;
 
         if (!req.file) {
-            return res.status(400).json({ msg: "Please upload the D17 receipt image." });
+            return res.status(400).json({ success: false, msg: "Please upload the D17 receipt image." });
         }
 
         const newPayment = new Payment({
@@ -19,10 +19,10 @@ exports.uploadReceipt = async (req, res) => {
         });
 
         await newPayment.save();
-        res.status(201).json({ msg: "Evidence submitted. Awaiting Admin verification." });
+        res.status(201).json({ success: true, msg: "Evidence submitted. Awaiting Admin verification." });
     } catch (err) {
         console.error("Upload Error:", err);
-        res.status(500).json({ msg: "Payment Submission Failure." });
+        res.status(500).json({ success: false, msg: "Payment Submission Failure." });
     }
 };
 
@@ -33,36 +33,49 @@ exports.approvePayment = async (req, res) => {
         const { paymentId } = req.params;
         const payment = await Payment.findById(paymentId);
 
-        if (!payment) return res.status(404).json({ msg: "Receipt not found." });
-        if (payment.status !== 'Pending') return res.status(400).json({ msg: "Already processed." });
+        if (!payment) return res.status(404).json({ success: false, msg: "Receipt not found." });
+        if (payment.status !== 'Pending') return res.status(400).json({ success: false, msg: "Already processed." });
 
         // Calculate Extension (30 days for Monthly, 90 for Quarterly)
         const daysToAdd = payment.plan === 'Monthly' ? 30 : 90;
         const extensionMs = daysToAdd * 24 * 60 * 60 * 1000;
 
         const user = await User.findById(payment.user);
-        if (!user) return res.status(404).json({ msg: "User not found." });
+        if (!user) return res.status(404).json({ success: false, msg: "User not found." });
 
-        // 🛡️ Extension Protection:
-        // If the user is already expired, we start extending from "Now".
-        // If they still have time, we add onto their "existing expiration date".
-        const baseDate = user.accessUntil > Date.now() ? new Date(user.accessUntil) : new Date();
-        user.accessUntil = new Date(baseDate.getTime() + extensionMs);
+        // 🛡️ Extension Protection Logic:
+        // Current Time
+        const now = Date.now();
         
-        // Restore their status and unpause the account
+        // If user is already expired, we start extending from "Now".
+        // If they still have time (e.g., 5 days left), we add the new 30 days onto their future date.
+        const currentExpiry = user.accessUntil ? new Date(user.accessUntil).getTime() : now;
+        const baseDate = currentExpiry > now ? currentExpiry : now;
+        
+        // Apply the extension
+        user.accessUntil = new Date(baseDate + extensionMs);
+        
+        // ✅ UPDATE USER SUBSCRIPTION STATUS
         user.isPaused = false;
         user.status = 'Active';
+        user.isPremium = true; // They paid, so they are now Premium
+        user.subscriptionPlan = payment.plan; // Set to 'Monthly' or 'Quarterly'
+        user.lastPaymentDate = new Date();
 
         // Update the payment record status
         payment.status = 'Approved';
         
+        // Save both documents
         await user.save();
         await payment.save();
 
-        res.json({ msg: `Access extended by ${daysToAdd} days for ${user.name}.` });
+        res.json({ 
+            success: true, 
+            msg: `Access extended by ${daysToAdd} days for ${user.name}. New Expiry: ${user.accessUntil.toDateString()}` 
+        });
     } catch (err) {
         console.error("Approval Error:", err);
-        res.status(500).json({ msg: "Approval Error." });
+        res.status(500).json({ success: false, msg: "Internal Approval Error." });
     }
 };
 
@@ -73,9 +86,9 @@ exports.getPendingPayments = async (req, res) => {
         const pending = await Payment.find({ status: 'Pending' })
             .populate('user', 'name email phone')
             .sort({ createdAt: -1 }); // Newest first
-        res.json(pending);
+        res.json({ success: true, data: pending });
     } catch (err) {
         console.error("Fetch Error:", err);
-        res.status(500).json({ msg: "Fetch Error." });
+        res.status(500).json({ success: false, msg: "Fetch Error." });
     }
 };
