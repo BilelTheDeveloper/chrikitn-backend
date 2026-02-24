@@ -16,10 +16,22 @@ const { upload } = require('../config/cloudinary');
  * @access  Private
  */
 router.get('/me', protect, (req, res) => {
-    // req.user is automatically populated by the protect middleware
+    // ✅ MANUAL MAPPING: We explicitly pull the fields from req.user 
+    // to ensure Mongoose doesn't hide them in the JSON response.
     res.status(200).json({
         success: true,
-        data: req.user
+        data: {
+            id: req.user._id,
+            name: req.user.name,
+            email: req.user.email,
+            role: req.user.role,
+            status: req.user.status,
+            isVerified: req.user.isVerified,
+            accessUntil: req.user.accessUntil, // 🔥 CRITICAL: Subscription end date
+            isPaused: req.user.isPaused,       // 🔥 CRITICAL: Lock status
+            portfolioUrl: req.user.portfolioUrl,
+            speciality: req.user.speciality
+        }
     });
 });
 
